@@ -16,6 +16,7 @@ void updateSuperiorPipes();
 void resetPipesPosition();
 void gameplayLogic();
 void resetGameplay();
+void drawTextures();
 void music_sound();
 void jump();
 void spriteUpdate();
@@ -37,6 +38,7 @@ int score = 0;
 
 bool pause = true;
 bool firstGame = true;
+bool hardMode = false;
 
 float gap = 200;
 
@@ -78,11 +80,21 @@ int main() {
     InitAudioDevice();
     
 
+    GuiSetStyle(DEFAULT, TEXT_SIZE, 30);
+    GuiSetStyle(DEFAULT, TEXT_COLOR_NORMAL, ColorToInt(BLACK));
+    GuiSetStyle(DEFAULT, TEXT_COLOR_FOCUSED, ColorToInt(RED));
+    GuiSetStyle(CHECKBOX, BORDER_COLOR_NORMAL, ColorToInt(BLACK));
+    GuiSetStyle(CHECKBOX, BORDER_COLOR_FOCUSED, ColorToInt(RED));
+    GuiSetStyle(CHECKBOX, BASE_COLOR_FOCUSED, ColorToInt(RED));
+    GuiSetStyle(CHECKBOX, BASE_COLOR_NORMAL, ColorToInt(GRAY));
+    
+    GuiSetStyle(CHECKBOX, BASE_COLOR_PRESSED,ColorToInt(DARKGRAY));
+    
+
     SetRandomSeed((unsigned int)time(NULL));
 
     Image icon = LoadImage("assets/bird.png");
     SetWindowIcon(icon);
-
 
     loseSound = LoadSound("assets/Pou game over sound effect.ogg");
     music = LoadMusicStream("assets/Pou music ConnectCliff JumpCliff DashJetmp3.ogg");
@@ -136,37 +148,9 @@ int main() {
             //background
             DrawTexturePro(background, (Rectangle){0,0, background.width, background.height}, (Rectangle){0,0, SCREEN_WIDTH, SCREEN_HEIGHT}, (Vector2){0,0},0.0, WHITE);
 
-
-
             spriteUpdate();
 
-            
-
-
-            //DrawRectangleRec(Bird, YELLOW);
-            DrawTextureEx(BirdSprites[spriteIndex], (Vector2){Bird.x -8, Bird.y - 16}, birdRotation, 4.5, WHITE);
-
-            
-
-
-
-            
-            for (int i = 0; i < sizeof(Pipes) / sizeof(Pipes[0]); i++) {
-                //DrawRectangleRec(Pipes[i], GREEN);   
-                
-            }
-
-
-            for (int i = 0; i < 3; i++) {
-                DrawTextureEx(inferiorPipe, (Vector2){Pipes[i].x-3 , Pipes[i].y-4}, 0.0f, 4, WHITE);
-                
-            }
-            for (int i = 3; i < sizeof(Pipes) / sizeof(Pipes[0]); i++) {
-                DrawTextureEx(superiorPipe, (Vector2){Pipes[i].x-10 , Pipes[i].y + superiorPipe.height + 180 }, 0.0f, 4, WHITE);
-                
-            }
-
-
+            drawTextures();
 
         }
 
@@ -176,8 +160,6 @@ int main() {
             gameOverScreen();
             
         }
-
-        
 
         EndDrawing();
     }
@@ -218,7 +200,6 @@ void gameplayLogic() {
     velocity += gravity * deltaTime;
     Bird.y += velocity *  deltaTime;
 
-
 }
 
 void resetGameplay() {
@@ -230,8 +211,9 @@ void resetGameplay() {
 }
 void jump() {
 
+    if (!hardMode) velocity = 0; //WHY??? "!"
+    
     spriteIndex = 2;
-    velocity = 0;
     velocity -= jumpForce;
     birdRotation = -20;
 }
@@ -240,13 +222,11 @@ void spriteUpdate() {
 
     spriteCount += GetFrameTime();
 
-
     if (spriteCount >= spriteTime) {
         spriteCount = 0;
         spriteIndex--;
     }
-
-
+    
     if (spriteIndex > (sizeof(BirdSprites) / sizeof(BirdSprites[0])) - 1) {
         spriteIndex = 0;
     }
@@ -254,6 +234,26 @@ void spriteUpdate() {
 
 }
 
+void drawTextures() {
+
+            //DrawRectangleRec(Bird, YELLOW);
+            DrawTextureEx(BirdSprites[spriteIndex], (Vector2){Bird.x -8, Bird.y - 16}, birdRotation, 4.5, WHITE);
+
+            
+            for (int i = 0; i < sizeof(Pipes) / sizeof(Pipes[0]); i++) {
+                //DrawRectangleRec(Pipes[i], GREEN);   
+                
+            }
+
+            for (int i = 0; i < 3; i++) {
+                DrawTextureEx(inferiorPipe, (Vector2){Pipes[i].x-3 , Pipes[i].y-4}, 0.0f, 4, WHITE);
+                
+            }
+            for (int i = 3; i < sizeof(Pipes) / sizeof(Pipes[0]); i++) {
+                DrawTextureEx(superiorPipe, (Vector2){Pipes[i].x-10 , Pipes[i].y + superiorPipe.height + 180 }, 0.0f, 4, WHITE);
+                
+            }
+}
 void music_sound() {
     
     UpdateMusicStream(music);
@@ -280,6 +280,9 @@ void gameOverScreen() {
         resetGameplay();
     }    
     DrawText("Play", 500, 320, 100, DARKGRAY);
+
+    GuiCheckBox((Rectangle){1000, 600, 100,100}, "HARD MODE", &hardMode);
+
 }
 
 
@@ -324,7 +327,6 @@ void birdColision() {
 
             firstGame = false;
             pause = true;
-
         }
 
     }
