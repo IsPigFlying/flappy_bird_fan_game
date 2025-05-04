@@ -16,7 +16,9 @@ void updateSuperiorPipes();
 void resetPipesPosition();
 void gameplayLogic();
 void resetGameplay();
+void music_sound();
 void jump();
+void spriteUpdate();
 
 void gameOverScreen();
 
@@ -26,10 +28,19 @@ short jumpForce = 350;
 short velocity = 0;
 float gravity = 900;
 float birdRotation = 0.0f;
-float gap = 200;
+
+int spriteIndex = 0;
+float spriteTime = 0.1f;
+float spriteCount = 0;
+
 int score = 0;
 
-Texture2D BirdSpries[NUM_SPRITES];
+bool pause = true;
+bool firstGame = true;
+
+float gap = 200;
+
+Texture2D BirdSprites[NUM_SPRITES];
 
 
 
@@ -44,11 +55,20 @@ Rectangle Pipe5 = {0,0, 100, 1000};
 Rectangle Pipe6 = {0,0, 100, 1000};
 
 
-bool pause = true;
 
-bool firstGame = true;
+Sound loseSound;
+Music music;
 
-char currentText[10];
+Texture2D background;
+
+Texture2D inferiorPipe;
+Texture2D superiorPipe;
+
+Texture2D bird1;
+Texture2D bird2;
+Texture2D bird3;
+
+
 
 int main() {
     
@@ -64,27 +84,24 @@ int main() {
     SetWindowIcon(icon);
 
 
-    Sound loseSound = LoadSound("assets/Pou game over sound effect.ogg");
-    Music music = LoadMusicStream("assets/Pou music ConnectCliff JumpCliff DashJetmp3.ogg");
+    loseSound = LoadSound("assets/Pou game over sound effect.ogg");
+    music = LoadMusicStream("assets/Pou music ConnectCliff JumpCliff DashJetmp3.ogg");
 
-    Texture2D background = LoadTexture("assets/background_Trasparent.png");
+    background = LoadTexture("assets/background_Trasparent.png");
 
-    Texture2D inferiorPipe = LoadTexture("assets/inferior pipe.png");
-    Texture2D superiorPipe = LoadTexture("assets/superior pipe.png");
+    inferiorPipe = LoadTexture("assets/inferior pipe.png");
+    superiorPipe = LoadTexture("assets/superior pipe.png");
 
-    Texture2D bird1 = LoadTexture("assets/bird1.png");
-    Texture2D bird2 = LoadTexture("assets/bird2.png");
-    Texture2D bird3 = LoadTexture("assets/bird3.png");
+    bird1 = LoadTexture("assets/bird1.png");
+    bird2 = LoadTexture("assets/bird2.png");
+    bird3 = LoadTexture("assets/bird3.png");
 
 
+    BirdSprites[0] = bird1;
+    BirdSprites[1] = bird2;
+    BirdSprites[2] = bird3;
     
     
-    BirdSpries[0] = bird1;
-    BirdSpries[1] = bird2;
-    BirdSpries[2] = bird3;
-    
-    
-
     Pipes[0] = Pipe;
     Pipes[1] = Pipe2;
     Pipes[2] = Pipe3;
@@ -112,44 +129,34 @@ int main() {
         if (!pause) {
             ClearBackground(SKYBLUE);
 
-            UpdateMusicStream(music);
+            music_sound();
 
-        if (!IsMusicStreamPlaying(music)) {
-            PlayMusicStream(music);
-        }
-            PlaySound(loseSound);
+            gameplayLogic();
 
-            float deltaTime = GetFrameTime();
-                
-            
-            if (IsKeyPressed(KEY_R)) resetGameplay();
-        
-            if (IsKeyPressed(KEY_SPACE)) jump();
-
-            pipesLogic();
-
-            birdColision();
-
-            if (birdRotation < 20) birdRotation += 0.8;
-        
-            //forces
-            velocity += gravity * deltaTime;
-            Bird.y += velocity *  deltaTime;
-        
-
-
-            //DrawTextureEx(background,(Vector2){ 0, 0},0.0F, 2.6 , WHITE);
-            //DrawTextureRec(background,(Rectangle){0,0,background.width, background.height}, (Vector2){0,0},WHITE);
+            //background
             DrawTexturePro(background, (Rectangle){0,0, background.width, background.height}, (Rectangle){0,0, SCREEN_WIDTH, SCREEN_HEIGHT}, (Vector2){0,0},0.0, WHITE);
 
-            //DrawRectangleRec(Bird, YELLOW);
-            DrawTextureEx(bird1, (Vector2){Bird.x -8, Bird.y - 16}, birdRotation, 4.5, WHITE);
+
+
+            spriteUpdate();
+
             
+
+
+            //DrawRectangleRec(Bird, YELLOW);
+            DrawTextureEx(BirdSprites[spriteIndex], (Vector2){Bird.x -8, Bird.y - 16}, birdRotation, 4.5, WHITE);
+
+            
+
+
+
             
             for (int i = 0; i < sizeof(Pipes) / sizeof(Pipes[0]); i++) {
                 //DrawRectangleRec(Pipes[i], GREEN);   
                 
             }
+
+
             for (int i = 0; i < 3; i++) {
                 DrawTextureEx(inferiorPipe, (Vector2){Pipes[i].x-3 , Pipes[i].y-4}, 0.0f, 4, WHITE);
                 
@@ -175,8 +182,8 @@ int main() {
         EndDrawing();
     }
     
-    for (int i = 0; i < sizeof(BirdSpries) / sizeof(BirdSpries[0]); i++) {
-        UnloadTexture(BirdSpries[i]);
+    for (int i = 0; i < sizeof(BirdSprites) / sizeof(BirdSprites[0]); i++) {
+        UnloadTexture(BirdSprites[i]);
     }
     UnloadTexture(inferiorPipe);
     UnloadTexture(superiorPipe);
@@ -189,6 +196,31 @@ int main() {
     return 0;
 }
 
+
+void gameplayLogic() {
+
+    if (Bird.y > SCREEN_HEIGHT || Bird.y < 0 ) {
+        firstGame = false;
+        pause = true;
+
+    }
+    float deltaTime = GetFrameTime();
+                
+    if (IsKeyPressed(KEY_SPACE)) jump();
+
+    pipesLogic();
+
+    birdColision();
+
+    if (birdRotation < 20) birdRotation += 0.8;
+
+    //forces
+    velocity += gravity * deltaTime;
+    Bird.y += velocity *  deltaTime;
+
+
+}
+
 void resetGameplay() {
     birdRotation = 0;
     score = 0;
@@ -197,11 +229,42 @@ void resetGameplay() {
     resetPipesPosition();
 }
 void jump() {
+
+    spriteIndex = 2;
     velocity = 0;
     velocity -= jumpForce;
     birdRotation = -20;
 }
 
+void spriteUpdate() {
+
+    spriteCount += GetFrameTime();
+
+
+    if (spriteCount >= spriteTime) {
+        spriteCount = 0;
+        spriteIndex--;
+    }
+
+
+    if (spriteIndex > (sizeof(BirdSprites) / sizeof(BirdSprites[0])) - 1) {
+        spriteIndex = 0;
+    }
+    
+
+}
+
+void music_sound() {
+    
+    UpdateMusicStream(music);
+
+    if (!IsMusicStreamPlaying(music)) {
+        PlayMusicStream(music);
+    }
+    
+    PlaySound(loseSound); // WHY THAT WORKS????
+
+}
 
 
 void gameOverScreen() {
@@ -261,7 +324,6 @@ void birdColision() {
 
             firstGame = false;
             pause = true;
-            
 
         }
 
